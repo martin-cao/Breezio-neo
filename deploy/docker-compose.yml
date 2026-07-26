@@ -1,0 +1,71 @@
+services:
+  postgres:
+    build:
+      context: ..
+      dockerfile: deploy/postgres/Dockerfile
+    environment:
+      POSTGRES_DB: breezio
+      POSTGRES_USER: breezio
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-change-me}
+    ports:
+      - "127.0.0.1:5432:5432"
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U breezio -d breezio"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  redis:
+    build:
+      context: ..
+      dockerfile: deploy/redis/Dockerfile
+    ports:
+      - "127.0.0.1:6379:6379"
+    volumes:
+      - redis-data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  emqx:
+    image: ${EMQX_IMAGE:-emqx/emqx:latest}
+    ports:
+      - "127.0.0.1:1883:1883"
+      - "127.0.0.1:8083:8083"
+      - "127.0.0.1:18083:18083"
+    volumes:
+      - emqx-data:/opt/emqx/data
+      - emqx-log:/opt/emqx/log
+    healthcheck:
+      test: ["CMD-SHELL", "emqx ctl status"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+
+  rustfs:
+    build:
+      context: ..
+      dockerfile: deploy/rustfs/Dockerfile
+      args:
+        RUSTFS_IMAGE: rustfs/rustfs:latest
+    ports:
+      - "127.0.0.1:9000:9000"
+      - "127.0.0.1:9001:9001"
+    volumes:
+      - rustfs-data:/data
+      - rustfs-logs:/logs
+    environment:
+      RUSTFS_ACCESS_KEY: ${RUSTFS_ACCESS_KEY:-breezio}
+      RUSTFS_SECRET_KEY: ${RUSTFS_SECRET_KEY:-change-me}
+
+volumes:
+  postgres-data:
+  redis-data:
+  emqx-data:
+  emqx-log:
+  rustfs-data:
+  rustfs-logs:

@@ -1,0 +1,27 @@
+openapi: 3.0.3
+info:
+  title: Models and Artifacts API Module
+  version: 0.1.0
+paths:
+  /api/models:
+    get:
+      tags: [Models]
+      summary: List model versions by task type.
+    post:
+      tags: [Models]
+      summary: Register a model version and object artifacts.
+  /api/models/{modelId}/activate:
+    post:
+      tags: [Models]
+      summary: Activate a model version.
+  /api/artifacts:
+    get:
+      tags: [Artifacts]
+      summary: List RustFS/S3-compatible object artifacts.
+    post:
+      tags: [Artifacts]
+      summary: Register an uploaded object artifact.
+  /api/artifacts/{artifactId}/presign:
+    post:
+      tags: [Artifacts]
+      summary: Create a temporary download URL for Web display.

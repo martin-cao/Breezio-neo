@@ -1,0 +1,25 @@
+openapi: 3.0.3
+info:
+  title: Telemetry API Module
+  version: 0.1.0
+paths:
+  /api/readings:
+    get:
+      tags: [Telemetry]
+      summary: Query sensor readings by node, metric and time range.
+    post:
+      tags: [Telemetry]
+      summary: Manual reading batch ingestion for simulators and replay tests.
+  /api/readings/latest:
+    get:
+      tags: [Telemetry]
+      summary: Get latest readings grouped by node and metric.
+  /api/topology:
+    get:
+      tags: [Telemetry]
+      summary: Get current gateway, node and parent-child topology.
+  /api/nodes/{nodeId}/events:
+    get:
+      tags: [Telemetry]
+      summary: Query node join, offline, low battery and link-quality events.
+

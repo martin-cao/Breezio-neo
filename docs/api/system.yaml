@@ -1,0 +1,20 @@
+openapi: 3.0.3
+info:
+  title: System API Module
+  version: 0.1.0
+paths:
+  /api/health:
+    get:
+      tags: [System]
+      summary: Health check
+      responses:
+        "200":
+          description: Service status, database status, MQTT status and object storage status.
+  /api/dashboard/summary:
+    get:
+      tags: [System]
+      summary: Dashboard summary
+      responses:
+        "200":
+          description: Current node count, active alerts, latest sensor values, AI status and runtime backend.
+

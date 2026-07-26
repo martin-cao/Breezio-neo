@@ -1,0 +1,21 @@
+{
+  "name": "smart-lab-iot-dashboard",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "bun build ./src/main.tsx ./src/api.ts ./src/styles.css --outdir ./dist --format esm --target browser",
+    "test": "bun run build && node --test tests/contract.test.mjs",
+    "typecheck": "tsc --noEmit",
+    "dev": "bun --port 5173 --hot ./index.html"
+  },
+  "dependencies": {
+    "react": "^19.2.7",
+    "react-dom": "^19.2.7"
+  },
+  "devDependencies": {
+    "@types/react": "^19.2.17",
+    "@types/react-dom": "^19.2.3",
+    "typescript": "^5.9.3"
+  }
+}

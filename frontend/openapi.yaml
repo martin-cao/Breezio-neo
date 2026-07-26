@@ -1,0 +1,2151 @@
+openapi: 3.0.3
+info:
+  title: Breezio Smart IoT Platform API
+  version: 0.1.0
+  description: >
+    REST API for the MQTT-based smart laboratory monitoring and control platform.
+    The online sensor path uses MQTT; this API is used by the Web dashboard,
+    model management, alerts, control commands, and manual ingestion/testing.
+servers:
+  - url: http://localhost:8000/api
+    description: Local Flask backend
+tags:
+  - name: Health
+  - name: Auth
+  - name: Devices
+  - name: Gateways
+  - name: Nodes
+  - name: Readings
+  - name: Alerts
+  - name: Control
+  - name: Prediction
+  - name: Vision
+  - name: Models
+  - name: Artifacts
+  - name: Users
+  - name: Settings
+security:
+  - bearerAuth: []
+paths:
+  /health:
+    get:
+      tags: [Health]
+      summary: Health check
+      security: []
+      responses:
+        "200":
+          description: Backend is healthy
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HealthResponse"
+
+  /auth/register:
+    post:
+      tags: [Auth]
+      summary: Register a dashboard user and issue a bearer token
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AuthRegister"
+      responses:
+        "201":
+          description: User registered and authenticated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AuthResponse"
+        "409":
+          description: Email already registered
+
+  /auth/login:
+    post:
+      tags: [Auth]
+      summary: Authenticate a dashboard user and issue a bearer token
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AuthLogin"
+      responses:
+        "200":
+          description: User authenticated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AuthResponse"
+        "401":
+          description: Invalid credentials
+
+  /dashboard/summary:
+    get:
+      tags: [Devices]
+      summary: Get dashboard summary
+      responses:
+        "200":
+          description: Summary of nodes, alerts, predictions and runtime status
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DashboardSummary"
+
+  /me:
+    get:
+      tags: [Users]
+      summary: Get signed-in user profile
+      responses:
+        "200":
+          description: Current user profile
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/UserResponse"
+    put:
+      tags: [Users]
+      summary: Update signed-in user profile
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ProfileUpdate"
+      responses:
+        "200":
+          description: Profile updated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/UserResponse"
+
+  /me/settings:
+    get:
+      tags: [Settings]
+      summary: Get signed-in user settings
+      responses:
+        "200":
+          description: Current user settings
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/UserSettingsResponse"
+    put:
+      tags: [Settings]
+      summary: Update signed-in user settings
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UserSettingsUpdate"
+      responses:
+        "200":
+          description: Settings updated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/UserSettingsResponse"
+
+  /users:
+    get:
+      tags: [Users]
+      summary: List lab user accounts
+      description: Admin-only account management endpoint.
+      parameters:
+        - name: role
+          in: query
+          schema:
+            $ref: "#/components/schemas/UserRole"
+        - name: status
+          in: query
+          schema:
+            $ref: "#/components/schemas/UserStatus"
+      responses:
+        "200":
+          description: User account list
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [success, data]
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/User"
+    post:
+      tags: [Users]
+      summary: Invite a lab user
+      description: Admin-only endpoint that creates an invited account.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UserCreate"
+      responses:
+        "201":
+          description: User invited
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/UserResponse"
+
+  /users/{userId}:
+    get:
+      tags: [Users]
+      summary: Get a lab user account
+      parameters:
+        - $ref: "#/components/parameters/UserId"
+      responses:
+        "200":
+          description: User account detail
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/UserResponse"
+        "404":
+          $ref: "#/components/responses/NotFound"
+    put:
+      tags: [Users]
+      summary: Update a lab user account
+      parameters:
+        - $ref: "#/components/parameters/UserId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UserUpdate"
+      responses:
+        "200":
+          description: User updated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/UserResponse"
+    delete:
+      tags: [Users]
+      summary: Disable a lab user account
+      parameters:
+        - $ref: "#/components/parameters/UserId"
+      responses:
+        "204":
+          description: User disabled
+
+  /devices:
+    get:
+      tags: [Devices]
+      summary: List logical devices
+      parameters:
+        - $ref: "#/components/parameters/StatusQuery"
+      responses:
+        "200":
+          description: Device list
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [success, data]
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/Device"
+    post:
+      tags: [Devices]
+      summary: Create a logical device
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/DeviceCreate"
+      responses:
+        "201":
+          description: Device created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DeviceResponse"
+
+  /devices/{deviceId}:
+    get:
+      tags: [Devices]
+      summary: Get a device
+      parameters:
+        - $ref: "#/components/parameters/DeviceId"
+      responses:
+        "200":
+          description: Device detail
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DeviceResponse"
+        "404":
+          $ref: "#/components/responses/NotFound"
+    put:
+      tags: [Devices]
+      summary: Update a device
+      parameters:
+        - $ref: "#/components/parameters/DeviceId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/DeviceUpdate"
+      responses:
+        "200":
+          description: Device updated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DeviceResponse"
+    delete:
+      tags: [Devices]
+      summary: Soft-delete a device
+      parameters:
+        - $ref: "#/components/parameters/DeviceId"
+      responses:
+        "204":
+          description: Deleted
+
+  /devices/{deviceId}/probe:
+    post:
+      tags: [Devices]
+      summary: Probe a camera device with FFmpeg
+      parameters:
+        - $ref: "#/components/parameters/DeviceId"
+      responses:
+        "200":
+          description: Camera stream reachable
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CameraProbeResponse"
+        "400":
+          description: Device is not a camera
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "422":
+          description: Camera stream probe failed
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CameraProbeResponse"
+
+  /devices/{deviceId}/preview.mjpg:
+    get:
+      tags: [Devices]
+      summary: Stream a camera preview as MJPEG
+      parameters:
+        - $ref: "#/components/parameters/DeviceId"
+        - name: fps
+          in: query
+          schema:
+            type: integer
+            default: 8
+            minimum: 1
+            maximum: 15
+        - name: width
+          in: query
+          schema:
+            type: integer
+            default: 960
+            minimum: 320
+            maximum: 1920
+      responses:
+        "200":
+          description: Multipart MJPEG stream
+          content:
+            multipart/x-mixed-replace:
+              schema:
+                type: string
+                format: binary
+        "400":
+          description: Device is not a camera
+        "404":
+          $ref: "#/components/responses/NotFound"
+
+  /devices/{deviceId}/hard:
+    delete:
+      tags: [Devices]
+      summary: Permanently delete a logical device
+      parameters:
+        - $ref: "#/components/parameters/DeviceId"
+      responses:
+        "204":
+          description: Deleted
+        "404":
+          $ref: "#/components/responses/NotFound"
+
+  /gateways:
+    get:
+      tags: [Gateways]
+      summary: List gateways
+      responses:
+        "200":
+          description: Gateway list
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [success, data]
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/Gateway"
+    post:
+      tags: [Gateways]
+      summary: Register a gateway
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/GatewayCreate"
+      responses:
+        "201":
+          description: Gateway registered
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/GatewayResponse"
+
+  /gateways/{gatewayId}/heartbeat:
+    post:
+      tags: [Gateways]
+      summary: Gateway heartbeat fallback endpoint
+      description: MQTT is preferred; this endpoint is useful for simulator and fallback tests.
+      parameters:
+        - $ref: "#/components/parameters/GatewayId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/GatewayHeartbeat"
+      responses:
+        "200":
+          description: Heartbeat accepted
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SuccessResponse"
+
+  /nodes:
+    get:
+      tags: [Nodes]
+      summary: List Zigbee nodes
+      parameters:
+        - name: gateway_id
+          in: query
+          schema:
+            type: string
+        - $ref: "#/components/parameters/StatusQuery"
+      responses:
+        "200":
+          description: Node list
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [success, data]
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/ZigbeeNode"
+    post:
+      tags: [Nodes]
+      summary: Create or register a Zigbee node
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ZigbeeNodeCreate"
+      responses:
+        "201":
+          description: Node registered
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ZigbeeNodeResponse"
+
+  /nodes/{nodeId}:
+    get:
+      tags: [Nodes]
+      summary: Get Zigbee node detail
+      parameters:
+        - $ref: "#/components/parameters/NodeId"
+      responses:
+        "200":
+          description: Node detail
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ZigbeeNodeResponse"
+
+  /readings:
+    get:
+      tags: [Readings]
+      summary: Query sensor readings
+      parameters:
+        - name: node_id
+          in: query
+          schema:
+            type: string
+        - name: metric
+          in: query
+          schema:
+            type: string
+            enum: [temperature, humidity, light]
+        - name: start
+          in: query
+          schema:
+            type: string
+            format: date-time
+        - name: end
+          in: query
+          schema:
+            type: string
+            format: date-time
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 500
+            maximum: 5000
+      responses:
+        "200":
+          description: Reading list
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [success, data]
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/SensorReading"
+    post:
+      tags: [Readings]
+      summary: Manual reading ingestion for tests and simulators
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ReadingBatch"
+      responses:
+        "201":
+          description: Batch accepted
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SuccessResponse"
+
+  /readings/latest:
+    get:
+      tags: [Readings]
+      summary: Get latest reading per node and metric
+      responses:
+        "200":
+          description: Latest readings
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [success, data]
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/SensorReading"
+
+  /alerts:
+    get:
+      tags: [Alerts]
+      summary: List alerts
+      parameters:
+        - $ref: "#/components/parameters/StatusQuery"
+        - name: severity
+          in: query
+          schema:
+            type: string
+            enum: [low, medium, high, critical]
+      responses:
+        "200":
+          description: Alert list
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [success, data]
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/Alert"
+    post:
+      tags: [Alerts]
+      summary: Create an alert
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AlertCreate"
+      responses:
+        "201":
+          description: Alert created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AlertResponse"
+
+  /alerts/{alertId}/ack:
+    post:
+      tags: [Alerts]
+      summary: Acknowledge an alert
+      parameters:
+        - $ref: "#/components/parameters/AlertId"
+      responses:
+        "200":
+          description: Alert acknowledged
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AlertResponse"
+
+  /alerts/{alertId}/resolve:
+    post:
+      tags: [Alerts]
+      summary: Resolve an alert
+      parameters:
+        - $ref: "#/components/parameters/AlertId"
+      responses:
+        "200":
+          description: Alert resolved
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AlertResponse"
+
+  /control/commands:
+    get:
+      tags: [Control]
+      summary: List control commands
+      parameters:
+        - name: node_id
+          in: query
+          schema:
+            type: string
+        - $ref: "#/components/parameters/StatusQuery"
+      responses:
+        "200":
+          description: Command list
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [success, data]
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/ControlCommand"
+    post:
+      tags: [Control]
+      summary: Send a control command
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ControlCommandCreate"
+      responses:
+        "201":
+          description: Command accepted
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ControlCommandResponse"
+
+  /control/commands/{commandId}:
+    get:
+      tags: [Control]
+      summary: Get command status
+      parameters:
+        - $ref: "#/components/parameters/CommandId"
+      responses:
+        "200":
+          description: Command status
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ControlCommandResponse"
+
+  /control/acks:
+    post:
+      tags: [Control]
+      summary: Ingest a command ACK
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CommandAckCreate"
+      responses:
+        "200":
+          description: ACK accepted and command status updated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ControlCommandResponse"
+
+  /prediction/runs:
+    get:
+      tags: [Prediction]
+      summary: List prediction training or evaluation runs
+      responses:
+        "200":
+          description: Prediction runs
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [success, data]
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/PredictionRun"
+    post:
+      tags: [Prediction]
+      summary: Start a prediction training or evaluation run
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/PredictionRunCreate"
+      responses:
+        "202":
+          description: Run accepted
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PredictionRunResponse"
+
+  /prediction/runs/{runId}/activate:
+    post:
+      tags: [Prediction]
+      summary: Mark a run's model as the active/recommended one for its node and metric
+      parameters:
+        - name: runId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Run activated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PredictionRunResponse"
+
+  /prediction/features:
+    get:
+      tags: [Prediction]
+      summary: Describe feature windows, split ratios and training data range for explanation pages
+
+  /prediction/latest:
+    get:
+      tags: [Prediction]
+      summary: Get latest predictions
+      parameters:
+        - name: node_id
+          in: query
+          schema:
+            type: string
+        - name: metric
+          in: query
+          schema:
+            type: string
+            enum: [temperature, humidity]
+      responses:
+        "200":
+          description: Latest predictions
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [success, data]
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/Prediction"
+
+  /prediction/metrics:
+    get:
+      tags: [Prediction]
+      summary: Get model comparison metrics
+      parameters:
+        - name: metric
+          in: query
+          schema:
+            type: string
+            enum: [temperature, humidity]
+      responses:
+        "200":
+          description: Model metrics
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [success, data]
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/PredictionMetric"
+
+  /inference/health:
+    get:
+      tags: [Vision]
+      summary: Proxy the backend-facing health check for the independent inference service
+      responses:
+        "200":
+          description: Inference service health payload
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [success, data]
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    type: object
+                    additionalProperties: true
+        "502":
+          $ref: "#/components/responses/BadGateway"
+
+  /inference/predict:
+    post:
+      tags: [Vision]
+      summary: Proxy a prediction request to the independent Flask inference service
+      description: Vision tasks are persisted into PostgreSQL `vision_events` by the backend.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/InferencePredictRequest"
+      responses:
+        "200":
+          description: Inference result
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/InferencePredictResponse"
+        "502":
+          $ref: "#/components/responses/BadGateway"
+
+  /vision/events:
+    get:
+      tags: [Vision]
+      summary: List vision inference events
+      parameters:
+        - name: camera_id
+          in: query
+          schema:
+            type: string
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 100
+      responses:
+        "200":
+          description: Vision event list
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [success, data]
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/VisionEvent"
+    post:
+      tags: [Vision]
+      summary: Ingest a vision inference event
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/VisionEventCreate"
+      responses:
+        "202":
+          description: Vision event accepted
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SuccessResponse"
+
+  /models:
+    get:
+      tags: [Models]
+      summary: List model versions
+      parameters:
+        - name: task
+          in: query
+          schema:
+            type: string
+            enum: [scene-classification, person-detection, sensor-forecast, face-identification]
+      responses:
+        "200":
+          description: Model list
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [success, data]
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/ModelVersion"
+    post:
+      tags: [Models]
+      summary: Register a model version
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ModelVersionCreate"
+      responses:
+        "201":
+          description: Model version registered
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ModelVersionResponse"
+
+  /models/{modelId}/activate:
+    post:
+      tags: [Models]
+      summary: Activate a model version
+      parameters:
+        - $ref: "#/components/parameters/ModelId"
+      responses:
+        "200":
+          description: Model activated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ModelVersionResponse"
+
+  /artifacts:
+    get:
+      tags: [Artifacts]
+      summary: List object storage artifacts
+      parameters:
+        - name: artifact_type
+          in: query
+          schema:
+            type: string
+            enum: [snapshot, dataset, model, onnx, benchmark, report]
+      responses:
+        "200":
+          description: Artifact list
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [success, data]
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/ObjectArtifact"
+    post:
+      tags: [Artifacts]
+      summary: Register an uploaded object artifact
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ObjectArtifactCreate"
+      responses:
+        "201":
+          description: Artifact registered
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ObjectArtifactResponse"
+
+  /artifacts/{artifactId}/presign:
+    post:
+      tags: [Artifacts]
+      summary: Create a temporary or development object URL for Web display
+      parameters:
+        - name: artifactId
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int64
+      responses:
+        "200":
+          description: Object URL created
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [success, data]
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    type: object
+                    required: [artifact_id, url]
+                    properties:
+                      artifact_id:
+                        type: integer
+                        format: int64
+                      url:
+                        type: string
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
+  parameters:
+    DeviceId:
+      name: deviceId
+      in: path
+      required: true
+      schema:
+        type: integer
+        format: int64
+    GatewayId:
+      name: gatewayId
+      in: path
+      required: true
+      schema:
+        type: string
+    NodeId:
+      name: nodeId
+      in: path
+      required: true
+      schema:
+        type: string
+    AlertId:
+      name: alertId
+      in: path
+      required: true
+      schema:
+        type: integer
+        format: int64
+    CommandId:
+      name: commandId
+      in: path
+      required: true
+      schema:
+        type: string
+    ModelId:
+      name: modelId
+      in: path
+      required: true
+      schema:
+        type: string
+    UserId:
+      name: userId
+      in: path
+      required: true
+      schema:
+        type: integer
+        format: int64
+    StatusQuery:
+      name: status
+      in: query
+      schema:
+        type: string
+
+  responses:
+    NotFound:
+      description: Resource not found
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ErrorResponse"
+    BadGateway:
+      description: Upstream inference service unavailable
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ErrorResponse"
+
+  schemas:
+    HealthResponse:
+      type: object
+      required: [success, status, time]
+      properties:
+        success:
+          type: boolean
+        status:
+          type: string
+          example: ok
+        time:
+          type: string
+          format: date-time
+
+    SuccessResponse:
+      type: object
+      required: [success]
+      properties:
+        success:
+          type: boolean
+        message:
+          type: string
+
+    ErrorResponse:
+      type: object
+      required: [success, error]
+      properties:
+        success:
+          type: boolean
+          example: false
+        error:
+          type: string
+        message:
+          type: string
+
+    InferencePredictRequest:
+      type: object
+      required: [task, input]
+      properties:
+        task:
+          type: string
+          enum: [scene-classification, person-detection, sensor-forecast, face-identification]
+        trace_id:
+          type: string
+        input:
+          type: object
+          additionalProperties: true
+          properties:
+            camera_id:
+              type: string
+            frame_id:
+              type: string
+            image_uri:
+              type: string
+            metric:
+              type: string
+            horizon:
+              type: integer
+
+    InferencePredictResponse:
+      type: object
+      required: [success, data]
+      properties:
+        success:
+          type: boolean
+        data:
+          type: object
+          required: [trace_id, task, model_id, runtime, latency_ms, outputs]
+          properties:
+            trace_id:
+              type: string
+            task:
+              type: string
+            model_id:
+              type: string
+            model_version:
+              type: string
+            runtime:
+              type: string
+            latency_ms:
+              type: number
+            timings:
+              type: object
+              additionalProperties: true
+            outputs:
+              type: object
+              additionalProperties: true
+
+    DashboardSummary:
+      type: object
+      required: [success, data]
+      properties:
+        success:
+          type: boolean
+        data:
+          type: object
+          properties:
+            online_nodes:
+              type: integer
+            active_alerts:
+              type: integer
+            latest_temperature:
+              type: number
+            latest_humidity:
+              type: number
+            people_count:
+              type: integer
+            scene_label:
+              type: string
+            active_model_backend:
+              type: string
+
+    UserRole:
+      type: string
+      enum: [admin, operator, viewer]
+
+    UserStatus:
+      type: string
+      enum: [active, invited, disabled]
+
+    ThemeMode:
+      type: string
+      enum: [system, light, dark]
+
+    AuthRegister:
+      type: object
+      required: [name, email, password]
+      properties:
+        name:
+          type: string
+        email:
+          type: string
+          format: email
+        password:
+          type: string
+          format: password
+          minLength: 8
+        role:
+          $ref: "#/components/schemas/UserRole"
+
+    AuthLogin:
+      type: object
+      required: [email, password]
+      properties:
+        email:
+          type: string
+          format: email
+        password:
+          type: string
+          format: password
+
+    AuthResponse:
+      type: object
+      required: [success, data]
+      properties:
+        success:
+          type: boolean
+        data:
+          type: object
+          required: [token_type, access_token, expires_in, user]
+          properties:
+            token_type:
+              type: string
+              enum: [Bearer]
+            access_token:
+              type: string
+            expires_in:
+              type: integer
+            user:
+              $ref: "#/components/schemas/User"
+
+    User:
+      type: object
+      required: [id, name, email, role, status]
+      properties:
+        id:
+          type: integer
+          format: int64
+        name:
+          type: string
+        email:
+          type: string
+          format: email
+        role:
+          $ref: "#/components/schemas/UserRole"
+        status:
+          $ref: "#/components/schemas/UserStatus"
+        last_login:
+          type: string
+          format: date-time
+          nullable: true
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+
+    UserCreate:
+      type: object
+      required: [name, email, role]
+      properties:
+        name:
+          type: string
+        email:
+          type: string
+          format: email
+        role:
+          $ref: "#/components/schemas/UserRole"
+
+    UserUpdate:
+      type: object
+      properties:
+        name:
+          type: string
+        email:
+          type: string
+          format: email
+        role:
+          $ref: "#/components/schemas/UserRole"
+        status:
+          $ref: "#/components/schemas/UserStatus"
+
+    ProfileUpdate:
+      type: object
+      properties:
+        name:
+          type: string
+        email:
+          type: string
+          format: email
+
+    UserResponse:
+      type: object
+      required: [success, data]
+      properties:
+        success:
+          type: boolean
+        data:
+          $ref: "#/components/schemas/User"
+
+    UserSettings:
+      type: object
+      required: [theme_mode, notifications]
+      properties:
+        theme_mode:
+          $ref: "#/components/schemas/ThemeMode"
+        notifications:
+          type: object
+          required: [critical_alerts, warning_alerts, vacant_energy_waste]
+          properties:
+            critical_alerts:
+              type: boolean
+            warning_alerts:
+              type: boolean
+            vacant_energy_waste:
+              type: boolean
+        default_view:
+          type: string
+          example: dashboard
+
+    UserSettingsUpdate:
+      type: object
+      properties:
+        theme_mode:
+          $ref: "#/components/schemas/ThemeMode"
+        notifications:
+          type: object
+          properties:
+            critical_alerts:
+              type: boolean
+            warning_alerts:
+              type: boolean
+            vacant_energy_waste:
+              type: boolean
+        default_view:
+          type: string
+
+    UserSettingsResponse:
+      type: object
+      required: [success, data]
+      properties:
+        success:
+          type: boolean
+        data:
+          $ref: "#/components/schemas/UserSettings"
+
+    Device:
+      type: object
+      required: [id, name, device_type, status]
+      properties:
+        id:
+          type: integer
+          format: int64
+        name:
+          type: string
+        device_type:
+          type: string
+        location:
+          type: string
+        status:
+          type: string
+        client_id:
+          type: string
+        protocol:
+          type: string
+          enum: [rtsp, http, https, file]
+        ip_address:
+          type: string
+        port:
+          type: integer
+        source_uri:
+          type: string
+        created_at:
+          type: string
+          format: date-time
+
+    DeviceCreate:
+      type: object
+      required: [name, device_type]
+      properties:
+        name:
+          type: string
+        device_type:
+          type: string
+        location:
+          type: string
+        client_id:
+          type: string
+        protocol:
+          type: string
+          enum: [rtsp, http, https, file]
+          default: rtsp
+        ip_address:
+          type: string
+        port:
+          type: integer
+        source_uri:
+          type: string
+
+    DeviceUpdate:
+      allOf:
+        - $ref: "#/components/schemas/DeviceCreate"
+
+    DeviceResponse:
+      type: object
+      required: [success, data]
+      properties:
+        success:
+          type: boolean
+        data:
+          $ref: "#/components/schemas/Device"
+
+    CameraProbeResponse:
+      type: object
+      required: [success, data]
+      properties:
+        success:
+          type: boolean
+        data:
+          type: object
+          properties:
+            ok:
+              type: boolean
+            source_uri:
+              type: string
+            snapshot_path:
+              type: string
+              nullable: true
+            error:
+              type: string
+            stream:
+              type: object
+              additionalProperties: true
+
+    Gateway:
+      type: object
+      required: [gateway_id, status]
+      properties:
+        gateway_id:
+          type: string
+        name:
+          type: string
+        location:
+          type: string
+        status:
+          type: string
+          enum: [online, offline, degraded]
+        version:
+          type: string
+        ip_address:
+          type: string
+        last_seen_at:
+          type: string
+          format: date-time
+
+    GatewayCreate:
+      type: object
+      required: [gateway_id]
+      properties:
+        gateway_id:
+          type: string
+        name:
+          type: string
+        location:
+          type: string
+
+    GatewayHeartbeat:
+      type: object
+      properties:
+        version:
+          type: string
+        status:
+          type: string
+          enum: [online, degraded]
+        queue_depth:
+          type: integer
+        serial_ok:
+          type: boolean
+
+    GatewayResponse:
+      type: object
+      required: [success, data]
+      properties:
+        success:
+          type: boolean
+        data:
+          $ref: "#/components/schemas/Gateway"
+
+    ZigbeeNode:
+      type: object
+      required: [node_id, gateway_id, role, status]
+      properties:
+        node_id:
+          type: string
+        gateway_id:
+          type: string
+        parent_node_id:
+          type: string
+          nullable: true
+        role:
+          type: string
+          enum: [sensor, router, sink, actuator]
+        area:
+          type: string
+        ip_address:
+          type: string
+          nullable: true
+          description: Wi-Fi sensor endpoint (DHCP-assigned IP, optional ":port").
+        status:
+          type: string
+          enum: [online, offline, fault]
+        battery_mv:
+          type: integer
+          nullable: true
+        rssi:
+          type: integer
+          nullable: true
+        packet_loss:
+          type: number
+          nullable: true
+        last_seen_at:
+          type: string
+          format: date-time
+          nullable: true
+
+    ZigbeeNodeCreate:
+      type: object
+      required: [node_id, gateway_id, role]
+      properties:
+        node_id:
+          type: string
+        gateway_id:
+          type: string
+        parent_node_id:
+          type: string
+        role:
+          type: string
+          enum: [sensor, router, sink, actuator]
+        area:
+          type: string
+        ip_address:
+          type: string
+          nullable: true
+          description: >-
+            Optional node LAN address retained for inventory and the legacy
+            gateway-dials-sensor Wi-Fi mode. The preferred Wi-Fi topology has
+            sensors actively connect to the gateway listener, so this field is
+            not required for telemetry ingestion. Omitting it on re-registration
+            keeps the stored value.
+
+    ZigbeeNodeResponse:
+      type: object
+      required: [success, data]
+      properties:
+        success:
+          type: boolean
+        data:
+          $ref: "#/components/schemas/ZigbeeNode"
+
+    SensorReading:
+      type: object
+      required: [message_id, node_id, metric, value, captured_at]
+      properties:
+        message_id:
+          type: string
+          format: uuid
+        gateway_id:
+          type: string
+        batch_id:
+          type: string
+        node_id:
+          type: string
+        seq:
+          type: integer
+        metric:
+          type: string
+        value:
+          type: number
+        unit:
+          type: string
+        rssi:
+          type: integer
+        battery_mv:
+          type: integer
+        flags:
+          type: integer
+        source:
+          type: string
+        captured_at:
+          type: string
+          format: date-time
+
+    ReadingBatch:
+      type: object
+      required: [gateway_id, records]
+      properties:
+        gateway_id:
+          type: string
+        batch_id:
+          type: string
+        captured_at:
+          type: string
+          format: date-time
+        records:
+          type: array
+          items:
+            type: object
+            required: [node_id, seq]
+            properties:
+              node_id:
+                type: string
+              parent_node_id:
+                type: string
+                nullable: true
+              role:
+                type: string
+                enum: [sensor, router, sink, actuator]
+              seq:
+                type: integer
+              temperature:
+                type: number
+              humidity:
+                type: number
+              light:
+                type: number
+              battery_mv:
+                type: integer
+              rssi:
+                type: integer
+              flags:
+                type: integer
+              source:
+                type: string
+
+    Alert:
+      type: object
+      required: [id, alert_type, severity, status, message, created_at]
+      properties:
+        id:
+          type: integer
+          format: int64
+        alert_type:
+          type: string
+        severity:
+          type: string
+          enum: [low, medium, high, critical]
+        status:
+          type: string
+          enum: [active, acked, resolved]
+        node_id:
+          type: string
+        camera_id:
+          type: string
+        message:
+          type: string
+        snapshot_artifact_id:
+          type: integer
+          format: int64
+        trigger_payload:
+          type: object
+          additionalProperties: true
+        created_at:
+          type: string
+          format: date-time
+
+    AlertCreate:
+      type: object
+      required: [alert_type, severity, message]
+      properties:
+        alert_type:
+          type: string
+        severity:
+          type: string
+          enum: [low, medium, high, critical]
+        node_id:
+          type: string
+        camera_id:
+          type: string
+        message:
+          type: string
+        snapshot_artifact_id:
+          type: integer
+          format: int64
+        trigger_payload:
+          type: object
+          additionalProperties: true
+
+    AlertResponse:
+      type: object
+      required: [success, data]
+      properties:
+        success:
+          type: boolean
+        data:
+          $ref: "#/components/schemas/Alert"
+
+    ControlCommand:
+      type: object
+      required: [command_id, target_node_id, target_device, action, status]
+      properties:
+        command_id:
+          type: string
+        source:
+          type: string
+          enum: [manual, auto, test]
+        target_node_id:
+          type: string
+        target_device:
+          type: string
+          enum: [fan, lamp, buzzer, window]
+        action:
+          type: string
+          enum: [on, off, open, close, toggle]
+        desired_state:
+          type: object
+          nullable: true
+          additionalProperties: true
+        reason:
+          type: string
+        status:
+          type: string
+          enum: [pending, sent, acked, timeout, failed]
+        created_at:
+          type: string
+          format: date-time
+        acked_at:
+          type: string
+          format: date-time
+
+    ControlCommandCreate:
+      type: object
+      required: [target_node_id, target_device, action]
+      properties:
+        source:
+          type: string
+          enum: [manual, auto, test]
+          default: manual
+        target_node_id:
+          type: string
+        target_device:
+          type: string
+          enum: [fan, lamp, buzzer, window]
+        action:
+          type: string
+          enum: [on, off, open, close, toggle]
+        reason:
+          type: string
+        desired_state:
+          type: object
+          nullable: true
+          additionalProperties: true
+        ttl_seconds:
+          type: integer
+          default: 10
+
+    ControlCommandResponse:
+      type: object
+      required: [success, data]
+      properties:
+        success:
+          type: boolean
+        data:
+          $ref: "#/components/schemas/ControlCommand"
+
+    CommandAckCreate:
+      type: object
+      required: [command_id, node_id, result]
+      properties:
+        command_id:
+          type: string
+        node_id:
+          type: string
+        result:
+          type: string
+          enum: [OK, ERROR]
+        message:
+          type: string
+        raw_frame:
+          type: string
+        acked_at:
+          type: string
+          format: date-time
+
+    PredictionRun:
+      type: object
+      required: [run_id, node_id, model_name, metric, created_at]
+      properties:
+        run_id:
+          type: string
+        node_id:
+          type: string
+        model_name:
+          type: string
+          enum: [persistence, linear_regression, random_forest, hist_gradient_boosting]
+        metric:
+          type: string
+          enum: [temperature, humidity]
+        status:
+          type: string
+          enum: [completed, failed]
+        is_active:
+          type: boolean
+        train_start_at:
+          type: string
+          format: date-time
+        train_end_at:
+          type: string
+          format: date-time
+        test_start_at:
+          type: string
+          format: date-time
+        test_end_at:
+          type: string
+          format: date-time
+        mae:
+          type: number
+        rmse:
+          type: number
+        r2:
+          type: number
+        created_at:
+          type: string
+          format: date-time
+
+    PredictionRunCreate:
+      type: object
+      required: [model_name, metric, target_node_id]
+      properties:
+        model_name:
+          type: string
+          enum: [persistence, linear_regression, random_forest, hist_gradient_boosting]
+        metric:
+          type: string
+          enum: [temperature, humidity]
+        target_node_id:
+          type: string
+        horizon_minutes:
+          type: integer
+          enum: [10, 15]
+        train_start_at:
+          type: string
+          format: date-time
+        train_end_at:
+          type: string
+          format: date-time
+
+    PredictionRunResponse:
+      type: object
+      required: [success, data]
+      properties:
+        success:
+          type: boolean
+        data:
+          $ref: "#/components/schemas/PredictionRun"
+
+    Prediction:
+      type: object
+      required: [node_id, metric, model_name, target_time, yhat]
+      properties:
+        node_id:
+          type: string
+        metric:
+          type: string
+        model_name:
+          type: string
+        horizon_minutes:
+          type: integer
+        target_time:
+          type: string
+          format: date-time
+        yhat:
+          type: number
+        yhat_lower:
+          type: number
+        yhat_upper:
+          type: number
+        generated_at:
+          type: string
+          format: date-time
+
+    PredictionMetric:
+      type: object
+      required: [model_name, metric]
+      properties:
+        node_id:
+          type: string
+        model_name:
+          type: string
+        metric:
+          type: string
+        mae:
+          type: number
+        rmse:
+          type: number
+        r2:
+          type: number
+        inference_latency_ms:
+          type: number
+        model_size_bytes:
+          type: integer
+        is_active:
+          type: boolean
+
+    VisionEvent:
+      type: object
+      required: [event_id, camera_id, captured_at]
+      properties:
+        event_id:
+          type: string
+          format: uuid
+        camera_id:
+          type: string
+        people_count:
+          type: integer
+        detections:
+          type: array
+          items:
+            $ref: "#/components/schemas/Detection"
+        scene_label:
+          type: string
+        scene_confidence:
+          type: number
+        backend:
+          type: string
+        latency_ms:
+          type: number
+        snapshot_artifact_id:
+          type: integer
+          format: int64
+        captured_at:
+          type: string
+          format: date-time
+
+    VisionEventCreate:
+      allOf:
+        - $ref: "#/components/schemas/VisionEvent"
+
+    Detection:
+      type: object
+      required: [label, confidence, box]
+      properties:
+        label:
+          type: string
+        confidence:
+          type: number
+        box:
+          type: array
+          minItems: 4
+          maxItems: 4
+          items:
+            type: number
+
+    ModelVersion:
+      type: object
+      required: [id, model_key, version, task_type, framework, status]
+      properties:
+        id:
+          type: integer
+          format: int64
+        model_key:
+          type: string
+        version:
+          type: string
+        task_type:
+          type: string
+          enum: [forecast, object_detection, scene_classification]
+        framework:
+          type: string
+        artifact_id:
+          type: integer
+          format: int64
+        onnx_artifact_id:
+          type: integer
+          format: int64
+        metrics:
+          type: object
+          additionalProperties: true
+        status:
+          type: string
+          enum: [draft, active, retired]
+
+    ModelVersionCreate:
+      type: object
+      required: [model_key, version, task_type, framework]
+      properties:
+        model_key:
+          type: string
+        version:
+          type: string
+        task_type:
+          type: string
+          enum: [forecast, object_detection, scene_classification]
+        framework:
+          type: string
+        artifact_id:
+          type: integer
+          format: int64
+        onnx_artifact_id:
+          type: integer
+          format: int64
+        metrics:
+          type: object
+          additionalProperties: true
+
+    ModelVersionResponse:
+      type: object
+      required: [success, data]
+      properties:
+        success:
+          type: boolean
+        data:
+          $ref: "#/components/schemas/ModelVersion"
+
+    ObjectArtifact:
+      type: object
+      required: [id, bucket, object_key, artifact_type]
+      properties:
+        id:
+          type: integer
+          format: int64
+        bucket:
+          type: string
+        object_key:
+          type: string
+        artifact_type:
+          type: string
+          enum: [snapshot, dataset, model, onnx, benchmark, report]
+        content_type:
+          type: string
+        size_bytes:
+          type: integer
+          format: int64
+        sha256:
+          type: string
+        etag:
+          type: string
+        meta:
+          type: object
+          additionalProperties: true
+        presigned_url:
+          type: string
+
+    ObjectArtifactCreate:
+      type: object
+      required: [bucket, object_key, artifact_type]
+      properties:
+        bucket:
+          type: string
+        object_key:
+          type: string
+        artifact_type:
+          type: string
+          enum: [snapshot, dataset, model, onnx, benchmark, report]
+        content_type:
+          type: string
+        size_bytes:
+          type: integer
+          format: int64
+        sha256:
+          type: string
+        etag:
+          type: string
+        meta:
+          type: object
+          additionalProperties: true
+
+    ObjectArtifactResponse:
+      type: object
+      required: [success, data]
+      properties:
+        success:
+          type: boolean
+        data:
+          $ref: "#/components/schemas/ObjectArtifact"

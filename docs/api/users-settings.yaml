@@ -1,0 +1,36 @@
+openapi: 3.0.3
+info:
+  title: Users and Settings API Module
+  version: 0.1.0
+paths:
+  /api/me:
+    get:
+      tags: [Users]
+      summary: Get signed-in user profile.
+    put:
+      tags: [Users]
+      summary: Update signed-in user profile.
+  /api/me/settings:
+    get:
+      tags: [Settings]
+      summary: Get signed-in user settings.
+    put:
+      tags: [Settings]
+      summary: Update signed-in user settings, including theme mode and notification preferences.
+  /api/users:
+    get:
+      tags: [Users]
+      summary: List lab user accounts.
+    post:
+      tags: [Users]
+      summary: Invite a lab user.
+  /api/users/{userId}:
+    get:
+      tags: [Users]
+      summary: Get a lab user account.
+    put:
+      tags: [Users]
+      summary: Update lab user role, status, or profile fields.
+    delete:
+      tags: [Users]
+      summary: Disable a lab user account.

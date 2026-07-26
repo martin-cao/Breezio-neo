@@ -1,0 +1,63 @@
+openapi: 3.0.3
+info:
+  title: Registry API Module
+  version: 0.1.0
+paths:
+  /api/devices:
+    get:
+      tags: [Registry]
+      summary: List logical devices.
+    post:
+      tags: [Registry]
+      summary: Create a logical device and optional default sensors.
+  /api/devices/{deviceId}:
+    get:
+      tags: [Registry]
+      summary: Get device detail.
+    put:
+      tags: [Registry]
+      summary: Update device metadata.
+    delete:
+      tags: [Registry]
+      summary: Soft-delete a device.
+  /api/devices/{deviceId}/probe:
+    post:
+      tags: [Registry]
+      summary: Probe a camera device using FFmpeg/FFprobe and capture one snapshot.
+  /api/devices/{deviceId}/preview.mjpg:
+    get:
+      tags: [Registry]
+      summary: Stream a camera device preview as FFmpeg-backed MJPEG.
+  /api/devices/{deviceId}/hard:
+    delete:
+      tags: [Registry]
+      summary: Permanently delete a logical device.
+  /api/gateways:
+    get:
+      tags: [Registry]
+      summary: List edge gateways.
+    post:
+      tags: [Registry]
+      summary: Register a gateway.
+  /api/gateways/{gatewayId}/heartbeat:
+    post:
+      tags: [Registry]
+      summary: HTTP heartbeat fallback; MQTT heartbeat remains preferred.
+  /api/nodes:
+    get:
+      tags: [Registry]
+      summary: List Zigbee/BasicRF nodes.
+    post:
+      tags: [Registry]
+      summary: Register a sensor, router, sink or actuator node.
+  /api/nodes/{nodeId}:
+    get:
+      tags: [Registry]
+      summary: Get node detail, latest status and parent relationship.
+  /api/cameras:
+    get:
+      tags: [Registry]
+      summary: List cameras or replay sources.
+    post:
+      tags: [Registry]
+      summary: Register a camera source.

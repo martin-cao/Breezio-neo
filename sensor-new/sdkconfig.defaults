@@ -1,0 +1,22 @@
+# Rust needs a larger main task stack than C's 3K default.
+CONFIG_ESP_MAIN_TASK_STACK_SIZE=8000
+
+# std::thread maps onto pthread tasks; raise their default stack too.
+CONFIG_PTHREAD_TASK_STACK_SIZE_DEFAULT=8192
+
+# --- Console routing ---
+# PRODUCTION: route the console (log::info! etc.) to the built-in USB Serial/JTAG
+# port so UART0 (GPIO43 TX / GPIO44 RX -> CH340 -> left USB-C) carries ONLY the
+# clean $BRZ2 protocol for the gateway. Logs go to the native-USB port.
+#
+# (For pure bench bring-up of the selftest over one cable, comment this block out
+# to fall back to the default UART0 console.)
+CONFIG_ESP_CONSOLE_USB_SERIAL_JTAG=y
+CONFIG_ESP_CONSOLE_UART_DEFAULT=n
+CONFIG_ESP_CONSOLE_UART_CUSTOM=n
+CONFIG_ESP_CONSOLE_USB_CDC=n
+CONFIG_ESP_CONSOLE_NONE=n
+CONFIG_ESP_CONSOLE_SECONDARY_NONE=y
+
+# 1 ms FreeRTOS tick so short thread sleeps behave.
+CONFIG_FREERTOS_HZ=1000

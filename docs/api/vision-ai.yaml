@@ -1,0 +1,27 @@
+openapi: 3.0.3
+info:
+  title: Vision AI API Module
+  version: 0.1.0
+paths:
+  /api/vision/events:
+    get:
+      tags: [Vision]
+      summary: List YOLO and scene-classification inference events.
+    post:
+      tags: [Vision]
+      summary: >
+        Ingest an inference event from inference-service. May include
+        face-identification fields (person_id, display_name, confidence,
+        identified) for enrolled lab members; see vision-model-design.md §9.
+  /api/vision/cameras/{cameraId}/latest:
+    get:
+      tags: [Vision]
+      summary: Get latest camera frame metadata, people count and scene label.
+  /api/vision/datasets:
+    get:
+      tags: [Vision]
+      summary: List self-collected datasets.
+    post:
+      tags: [Vision]
+      summary: Register a dataset manifest stored in object storage.
+

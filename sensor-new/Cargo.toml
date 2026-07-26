@@ -1,0 +1,55 @@
+[package]
+name = "breezio-sensor-new"
+version = "1.0.0"
+authors = ["Breezio contributors"]
+edition = "2021"
+resolver = "2"
+rust-version = "1.77"
+
+[[bin]]
+name = "breezio-sensor-new"
+path = "src/main.rs"
+harness = false
+
+# Bench bring-up: exercises each peripheral with raw drivers. `cargo run --bin selftest`.
+[[bin]]
+name = "selftest"
+path = "src/bin/selftest.rs"
+harness = false
+
+[profile.release]
+opt-level = "s"
+
+[profile.dev]
+debug = true
+opt-level = "z"
+
+[features]
+default = []
+experimental = ["esp-idf-svc/experimental"]
+# Wi-Fi STA + sensor-initiated $BRZ2-over-TCP transport (src/wifi.rs, src/net_link.rs).
+# The gateway is found via mDNS (src/discovery.rs; _breezio-gateway._tcp.local),
+# falling back to BREEZIO_GATEWAY_HOST/PORT if discovery fails.
+# Build: cargo build --features wifi
+# Override demo credentials and the discovery fallback at compile time:
+#   BREEZIO_WIFI_SSID=... BREEZIO_WIFI_FALLBACK_SSID=... BREEZIO_WIFI_PASS=... BREEZIO_GATEWAY_HOST=192.0.2.23 cargo build --features wifi
+wifi = ["esp-idf-svc/alloc"]
+
+[dependencies]
+anyhow = "1"
+log = "0.4"
+esp-idf-svc = "0.51"
+esp-idf-hal = { version = "0.45", features = ["rmt-legacy"] }
+smart-leds = "0.4"
+ssd1306 = "0.9"
+embedded-graphics = "0.8"
+heapless = "0.8"
+
+[build-dependencies]
+embuild = "0.33"
+
+# Gateway discovery over mDNS (feature = "wifi", src/discovery.rs) needs the
+# ESP-IDF mdns component; it isn't built in by default under IDF 5.x, so pull
+# it in through the component manager.
+[[package.metadata.esp-idf-sys.extra_components]]
+remote_component = { name = "espressif/mdns", version = "1.2" }

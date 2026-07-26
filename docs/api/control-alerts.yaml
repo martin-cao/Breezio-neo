@@ -1,0 +1,32 @@
+openapi: 3.0.3
+info:
+  title: Control and Alerts API Module
+  version: 0.1.0
+paths:
+  /api/control/commands:
+    get:
+      tags: [Control]
+      summary: List control commands and status.
+    post:
+      tags: [Control]
+      summary: Create a manual or automatic control command.
+  /api/control/commands/{commandId}:
+    get:
+      tags: [Control]
+      summary: Get command state, ACK and retry history.
+  /api/alerts:
+    get:
+      tags: [Alerts]
+      summary: List active, acknowledged or resolved alerts.
+    post:
+      tags: [Alerts]
+      summary: Create an alert from rules, AI events or manual tests.
+  /api/alerts/{alertId}/ack:
+    post:
+      tags: [Alerts]
+      summary: Acknowledge an alert.
+  /api/alerts/{alertId}/resolve:
+    post:
+      tags: [Alerts]
+      summary: Resolve an alert.
+

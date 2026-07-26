@@ -1,0 +1,29 @@
+openapi: 3.0.3
+info:
+  title: Prediction API Module
+  version: 0.1.0
+paths:
+  /api/prediction/runs:
+    get:
+      tags: [Prediction]
+      summary: List training and evaluation runs.
+    post:
+      tags: [Prediction]
+      summary: Start a training or evaluation run. Accepts model_name (single) or models (bulk list).
+  /api/prediction/runs/{runId}/activate:
+    post:
+      tags: [Prediction]
+      summary: Mark a run's model as the active/recommended one for its node and metric.
+  /api/prediction/latest:
+    get:
+      tags: [Prediction]
+      summary: Get latest online predictions for selected node and metric.
+  /api/prediction/metrics:
+    get:
+      tags: [Prediction]
+      summary: Compare MAE, RMSE, R2 and inference latency across models.
+  /api/prediction/features:
+    get:
+      tags: [Prediction]
+      summary: Describe feature windows and training data range for explanation pages.
+
